@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -14,12 +17,13 @@ class DetailAddingScreen extends StatelessWidget {
   DetailAddingScreen({
     Key? key,
     required this.type,
+    this.data, required this.camera,
   }) : super(key: key);
 
   final ActionType type;
-  
+  final StudentModel? data;
 
-
+  final CameraDescription camera;
 
   final _formkey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -27,20 +31,32 @@ class DetailAddingScreen extends StatelessWidget {
   final _numController = TextEditingController();
   final _placeController = TextEditingController();
 
+  File? pick;
+
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      Provider.of<StudentModelFunction>(context, listen: false).getAllStudent();
+    });
+    if (type == ActionType.editStudent) {
+      _nameController.text = data!.name;
+      _ageController.text = data!.age;
+      _numController.text = data!.phoneNumber;
+      _placeController.text = data!.place;
+    }
     return Scaffold(
       appBar: PreferredSize(
           preferredSize: Size.fromHeight(50),
           child: WidgetAppBar(
-            title: type == ActionType.addStudent ? "Add new student" :"",
+            title:
+                type == ActionType.addStudent ? "Add new student" : data!.name,
             iconButton: Icons.star,
             iconColor: const Color.fromARGB(255, 236, 214, 18),
           )),
       body: SafeArea(
           child: Consumer(
-            builder: (context, value, child) => ListView(
-                  children: [
+        builder: (context, value, child) => ListView(
+          children: [
             Form(
                 key: _formkey,
                 child: Column(
@@ -48,13 +64,15 @@ class DetailAddingScreen extends StatelessWidget {
                     kHeight3,
                     Stack(
                       children: [
-                        CircleAvatar(
-                            radius: 80,
-                            backgroundColor: const Color.fromRGBO(0, 0, 0, 0),
-                            backgroundImage: AssetImage(
-                                type == ActionType.addStudent
-                                    ? "images/download.png"
-                                    : "images/download.jpg")),
+                        pick != null
+                            ? CircleAvatar(
+                                radius: 80,
+                                backgroundColor:
+                                    const Color.fromRGBO(0, 0, 0, 0),
+                                child: Image.file(pick!))
+                            : Container(
+                                child: Image.asset("images/download.png"),
+                              ),
                         Padding(
                           padding: const EdgeInsets.only(top: 100, left: 110),
                           child: IconButton(
@@ -82,16 +100,32 @@ class DetailAddingScreen extends StatelessWidget {
                     kHeight3,
                   ],
                 )),
-                  ],
-                ),
-          )),
+          ],
+        ),
+      )),
       bottomNavigationBar: GestureDetector(
         onTap: () {
-          if (_formkey.currentState!.validate()) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Added Alex ')),
-            );
-            onButtonClicked();
+          print("object");
+          switch (type) {
+            case ActionType.addStudent:
+              if (_formkey.currentState!.validate()) {
+                ScaffoldMessenger.of(_formkey.currentState!.context)
+                    .showSnackBar(
+                  SnackBar(
+                      content: Text(
+                          "Student${_nameController.text}  added to Students")),
+                );
+                onSaveButtonClicked();
+              }
+
+              break;
+            case ActionType.editStudent:
+              if (_formkey.currentState!.validate()) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Student ${data!.name} editted")));
+              }
+              onUpdateButtonClicked();
+              break;
           }
         },
         child: BottomBarWidget(
@@ -138,14 +172,27 @@ class DetailAddingScreen extends StatelessWidget {
   }
 
   Future takecamera() async {
-    await ImagePicker().pickImage(source: ImageSource.camera);
+    XFile? pickImage =
+        await ImagePicker().pickImage(source: ImageSource.camera);
+    print(pickImage);
+    if (pickImage == null) {
+      return;
+    }
+
+    File temp = File(pickImage.path);
+    print("hi$pick");
+    pick = temp;
+
+    Provider.of<StudentModelFunction>(_formkey.currentState!.context,
+            listen: false)
+        .imageadd(pickImage);
   }
 
   Future takePhoto() async {
     await ImagePicker().pickImage(source: ImageSource.gallery);
   }
 
-  Future onButtonClicked() async {
+  Future onSaveButtonClicked() async {
     final name = _nameController.text;
     final age = _ageController.text;
     final phoneNumber = _numController.text;
@@ -159,11 +206,37 @@ class DetailAddingScreen extends StatelessWidget {
           age: age,
           phoneNumber: phoneNumber,
           place: place,
-          imgstri: "");
-          
-       Provider.of<StudentModelFunction>(_formkey.currentState!.context,
+          imgstri: StudentModelFunction().image);
+      Provider.of<StudentModelFunction>(_formkey.currentState!.context,
               listen: false)
           .addStudent(student);
+      Navigator.of(_formkey.currentContext!).pop();
+    }
+  }
+
+  void onUpdateButtonClicked() {
+    final nameEditted = _nameController.text;
+    final ageEditted = _ageController.text;
+    final phoneNumberEditted = _numController.text;
+    final placeEditted = _placeController.text;
+
+    if (nameEditted.isEmpty ||
+        ageEditted.isEmpty ||
+        phoneNumberEditted.isEmpty ||
+        placeEditted.isEmpty) {
+      return;
+    } else {
+      final studentEditted = StudentModel(
+          name: nameEditted,
+          age: ageEditted,
+          phoneNumber: phoneNumberEditted,
+          place: placeEditted,
+          imgstri: "",
+          id: data!.id);
+      Provider.of<StudentModelFunction>(_formkey.currentState!.context,
+              listen: false)
+          .updateStudent(studentEditted.id!, studentEditted);
+      Navigator.of(_formkey.currentContext!).pop();
     }
   }
 }

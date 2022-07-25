@@ -1,5 +1,6 @@
 
 
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
@@ -9,17 +10,25 @@ import '../models/student_model.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
+
+
+  final cameras = await availableCameras();
+
+final firstCamera = cameras.first;
+
  await Hive.initFlutter();
  if(!Hive.isAdapterRegistered(StudentModelAdapter().typeId)){
     Hive.registerAdapter(StudentModelAdapter());
  }
   runApp(
-     const MyApp() ,
+      MyApp(selectedcamera: firstCamera) ,
    );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({Key? key, required this.selectedcamera}) : super(key: key);
+
+ final  CameraDescription selectedcamera;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +42,7 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           primarySwatch: Colors.blue,
         ),
-        home: const AllStudentsScreen(),
+        home:  AllStudentsScreen(cam:selectedcamera ),
       ),
     );
   }

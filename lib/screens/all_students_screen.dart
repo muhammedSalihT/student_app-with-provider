@@ -1,3 +1,4 @@
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:studentapp/core/color.dart';
@@ -11,13 +12,16 @@ import '../widgets/widget_text.dart';
 import 'Student_screen.dart';
 
 class AllStudentsScreen extends StatelessWidget {
-  const AllStudentsScreen({Key? key}) : super(key: key);
+  const AllStudentsScreen({Key? key, required this.cam}) : super(key: key);
+
+  final CameraDescription cam;
 
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       Provider.of<StudentModelFunction>(context, listen: false).getAllStudent();
     });
+
     return Scaffold(
       appBar: const PreferredSize(
           preferredSize: Size.fromHeight(50),
@@ -37,10 +41,15 @@ class AllStudentsScreen extends StatelessWidget {
           itemBuilder: (BuildContext context, int index) {
             return GestureDetector(
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: ((context) =>  StudentScreen(studentList:value.studentlistNotifier[index],)))),
+                  builder: ((context) => StudentScreen(
+                    cam2: cam,
+                        studentList: value.studentlistNotifier[index],
+                      )))),
               child: ListTile(
-                leading: const Avatar(
-                    circleRadious: 30, image: "images/download.jpg"),
+                leading: Avatar(
+                  model: value.studentlistNotifier[index],
+                  circleRadious: 30,
+                ),
                 title: TextWidget(title: value.studentlistNotifier[index].name),
                 subtitle:
                     TextWidget(title: value.studentlistNotifier[index].age),
@@ -60,7 +69,10 @@ class AllStudentsScreen extends StatelessWidget {
       ),
       bottomNavigationBar: GestureDetector(
         onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => DetailAddingScreen(type: ActionType.addStudent, ),
+          builder: (context) => DetailAddingScreen(
+            camera: cam,
+            type: ActionType.addStudent,
+          ),
         )),
         child: const BottomBarWidget(
           title: "Add Student",
