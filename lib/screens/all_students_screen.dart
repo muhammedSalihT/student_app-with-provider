@@ -1,8 +1,8 @@
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:studentapp/core/color.dart';
 import 'package:studentapp/infrastructure/db_functions.dart';
+import 'package:studentapp/infrastructure/image_controller.dart';
 import 'package:studentapp/screens/detail_adding_screen.dart';
 import 'package:studentapp/widgets/widget_appbar.dart';
 import 'package:studentapp/widgets/widget_avatar.dart';
@@ -12,16 +12,13 @@ import '../widgets/widget_text.dart';
 import 'Student_screen.dart';
 
 class AllStudentsScreen extends StatelessWidget {
-  const AllStudentsScreen({Key? key, required this.cam}) : super(key: key);
-
-  final CameraDescription cam;
+  const AllStudentsScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       Provider.of<StudentModelFunction>(context, listen: false).getAllStudent();
     });
-
     return Scaffold(
       appBar: const PreferredSize(
           preferredSize: Size.fromHeight(50),
@@ -42,20 +39,21 @@ class AllStudentsScreen extends StatelessWidget {
             return GestureDetector(
               onTap: () => Navigator.of(context).push(MaterialPageRoute(
                   builder: ((context) => StudentScreen(
-                    cam2: cam,
-                        studentList: value.studentlistNotifier[index],
+                        index: index,
                       )))),
               child: ListTile(
-                leading: Avatar(
-                  model: value.studentlistNotifier[index],
-                  circleRadious: 30,
+                leading: Consumer<ImageController>(
+                  builder: (context, image, child) => Avatar(
+                    model: value.studentlistNotifier[index],
+                    circleRadious: 30,
+                  ),
                 ),
                 title: TextWidget(title: value.studentlistNotifier[index].name),
                 subtitle:
                     TextWidget(title: value.studentlistNotifier[index].age),
                 trailing: IconWidget(
                   onpressing: () {
-                    print('object');
+                    
                     Provider.of<StudentModelFunction>(context, listen: false)
                         .deleteStudent(value.studentlistNotifier[index].id!);
                   },
@@ -70,7 +68,6 @@ class AllStudentsScreen extends StatelessWidget {
       bottomNavigationBar: GestureDetector(
         onTap: () => Navigator.of(context).push(MaterialPageRoute(
           builder: (context) => DetailAddingScreen(
-            camera: cam,
             type: ActionType.addStudent,
           ),
         )),

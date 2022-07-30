@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:studentapp/infrastructure/db_functions.dart';
 import 'package:studentapp/models/student_model.dart';
 
 class Avatar extends StatelessWidget {
@@ -17,16 +15,17 @@ class Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CircleAvatar(
-      radius: 40,
-      child: StudentModelFunction().image.trim().isEmpty
+      radius: circleRadious,
+      child: model.imgstri.isNotEmpty
           ? CircleAvatar(
-              radius: 50,
+            radius: circleRadious,
               backgroundImage: MemoryImage(
                 Base64Decoder().convert(model.imgstri),
               ),
             )
-          : Container(
-              color: Colors.white,
+          :  CircleAvatar(
+            radius: circleRadious,
+             backgroundImage: AssetImage("images/download.png"),
             ),
     );
   }

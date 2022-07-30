@@ -1,11 +1,10 @@
-import 'dart:io';
-
-import 'package:camera/camera.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:studentapp/core/constands.dart';
 import 'package:studentapp/infrastructure/db_functions.dart';
+import 'package:studentapp/infrastructure/image_controller.dart';
 import 'package:studentapp/models/student_model.dart';
 import 'package:studentapp/widgets/form_field_widget.dart';
 import 'package:studentapp/widgets/widget_appbar.dart';
@@ -16,14 +15,12 @@ enum ActionType { addStudent, editStudent }
 class DetailAddingScreen extends StatelessWidget {
   DetailAddingScreen({
     Key? key,
-    required this.type,
-    this.data, required this.camera,
+    this.type,
+    this.data,
   }) : super(key: key);
 
-  final ActionType type;
+  final ActionType? type;
   final StudentModel? data;
-
-  final CameraDescription camera;
 
   final _formkey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -31,12 +28,13 @@ class DetailAddingScreen extends StatelessWidget {
   final _numController = TextEditingController();
   final _placeController = TextEditingController();
 
-  File? pick;
+  
 
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       Provider.of<StudentModelFunction>(context, listen: false).getAllStudent();
+      context.read<ImageController>().imagess = '';
     });
     if (type == ActionType.editStudent) {
       _nameController.text = data!.name;
@@ -54,7 +52,7 @@ class DetailAddingScreen extends StatelessWidget {
             iconColor: const Color.fromARGB(255, 236, 214, 18),
           )),
       body: SafeArea(
-          child: Consumer(
+          child: Consumer<StudentModelFunction>(
         builder: (context, value, child) => ListView(
           children: [
             Form(
@@ -62,30 +60,37 @@ class DetailAddingScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     kHeight3,
-                    Stack(
-                      children: [
-                        pick != null
-                            ? CircleAvatar(
-                                radius: 80,
-                                backgroundColor:
-                                    const Color.fromRGBO(0, 0, 0, 0),
-                                child: Image.file(pick!))
-                            : Container(
-                                child: Image.asset("images/download.png"),
-                              ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 100, left: 110),
-                          child: IconButton(
-                              onPressed: () {
-                                showBottomSheet(context);
-                              },
-                              icon: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.red,
-                                size: 50,
-                              )),
-                        ),
-                      ],
+                    Consumer<ImageController>(
+                      builder: (context, imge, child) {
+                        return Stack(
+                          children: [
+                            imge.imagess.isEmpty
+                                ? const CircleAvatar(
+                                    radius: 80,
+                                    backgroundColor: Color.fromRGBO(0, 0, 0, 0),
+                                    backgroundImage:
+                                        AssetImage("images/download.png"))
+                                : CircleAvatar(
+                                    radius: 80,
+                                    backgroundImage: MemoryImage(Base64Decoder()
+                                        .convert(imge.imagess.toString())),
+                                  ),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.only(top: 100, left: 110),
+                              child: IconButton(
+                                  onPressed: () {
+                                    showBottomSheet(context);
+                                  },
+                                  icon: const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.red,
+                                    size: 50,
+                                  )),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     kHeight3,
                     TextFieldWidget(
@@ -115,7 +120,7 @@ class DetailAddingScreen extends StatelessWidget {
                       content: Text(
                           "Student${_nameController.text}  added to Students")),
                 );
-                onSaveButtonClicked();
+                onSaveButtonClicked(context);
               }
 
               break;
@@ -124,7 +129,7 @@ class DetailAddingScreen extends StatelessWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("Student ${data!.name} editted")));
               }
-              onUpdateButtonClicked();
+              onUpdateButtonClicked(context);
               break;
           }
         },
@@ -135,64 +140,54 @@ class DetailAddingScreen extends StatelessWidget {
     );
   }
 
-  Future showBottomSheet(context) async {
+  Future showBottomSheet(ctx1) async {
     showModalBottomSheet(
-        context: context,
+        context: ctx1,
         builder: (context) {
           return Container(
             height: 80,
             width: double.infinity,
             color: const Color.fromARGB(62, 0, 0, 0),
-            child: Column(children: [
-              const Text('choise your profile photo'),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                      onPressed: () {
-                        takecamera();
+            child: Column(
+              children: [
+                const Text('choise your profile photo'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Consumer<ImageController>(
+                      builder: (context, value, child) {
+                        return IconButton(
+                            onPressed: () async {
+                              value.pickImageFromCamera();
+                              Navigator.of(context).pop();
+                            },
+                            icon: const Icon(
+                              Icons.camera,
+                              size: 30,
+                            ));
                       },
-                      icon: const Icon(
-                        Icons.camera,
-                        size: 30,
-                      )),
-                  IconButton(
-                      onPressed: () {
-                        takePhoto();
-                      },
-                      icon: const Icon(
-                        Icons.sd_storage,
-                        size: 30,
-                      ))
-                ],
-              )
-            ]),
+                    ),
+                    IconButton(
+                        onPressed: () {
+                          takePhoto();
+                        },
+                        icon: const Icon(
+                          Icons.sd_storage,
+                          size: 30,
+                        ))
+                  ],
+                )
+              ],
+            ),
           );
         });
-  }
-
-  Future takecamera() async {
-    XFile? pickImage =
-        await ImagePicker().pickImage(source: ImageSource.camera);
-    print(pickImage);
-    if (pickImage == null) {
-      return;
-    }
-
-    File temp = File(pickImage.path);
-    print("hi$pick");
-    pick = temp;
-
-    Provider.of<StudentModelFunction>(_formkey.currentState!.context,
-            listen: false)
-        .imageadd(pickImage);
   }
 
   Future takePhoto() async {
     await ImagePicker().pickImage(source: ImageSource.gallery);
   }
 
-  Future onSaveButtonClicked() async {
+  Future onSaveButtonClicked(context) async {
     final name = _nameController.text;
     final age = _ageController.text;
     final phoneNumber = _numController.text;
@@ -206,15 +201,16 @@ class DetailAddingScreen extends StatelessWidget {
           age: age,
           phoneNumber: phoneNumber,
           place: place,
-          imgstri: StudentModelFunction().image);
-      Provider.of<StudentModelFunction>(_formkey.currentState!.context,
-              listen: false)
+          imgstri:
+              Provider.of<ImageController>(context, listen: false).imagess);
+      Provider.of<StudentModelFunction>(context, listen: false)
           .addStudent(student);
+      Provider.of<ImageController>(context, listen: false).imagess = '';
       Navigator.of(_formkey.currentContext!).pop();
     }
   }
 
-  void onUpdateButtonClicked() {
+  void onUpdateButtonClicked(context) {
     final nameEditted = _nameController.text;
     final ageEditted = _ageController.text;
     final phoneNumberEditted = _numController.text;
@@ -231,7 +227,7 @@ class DetailAddingScreen extends StatelessWidget {
           age: ageEditted,
           phoneNumber: phoneNumberEditted,
           place: placeEditted,
-          imgstri: "",
+          imgstri: Provider.of<ImageController>(context, listen: false).imagess,
           id: data!.id);
       Provider.of<StudentModelFunction>(_formkey.currentState!.context,
               listen: false)
