@@ -19,62 +19,72 @@ class AllStudentsScreen extends StatelessWidget {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       Provider.of<StudentModelFunction>(context, listen: false).getAllStudent();
     });
-    return Scaffold(
-      appBar: const PreferredSize(
-          preferredSize: Size.fromHeight(50),
-          child: WidgetAppBar(
-            title: "All Students",
-            iconButton: Icons.search,
-            iconColor: Colors.white,
-          )),
-      body: Consumer<StudentModelFunction>(
-        builder: (context, value, child) => ListView.separated(
-          itemCount: value.studentlistNotifier.length,
-          separatorBuilder: (BuildContext context, int index) => const Divider(
-            thickness: 5.0,
-            height: 10.0,
-            color: Colors.black,
-          ),
-          itemBuilder: (BuildContext context, int index) {
-            return GestureDetector(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: ((context) => StudentScreen(
-                        index: index,
-                      )))),
-              child: ListTile(
-                leading: Consumer<ImageController>(
-                  builder: (context, image, child) => Avatar(
-                    model: value.studentlistNotifier[index],
-                    circleRadious: 30,
+    return  Scaffold(
+        body: CustomScrollView(
+          slivers: [
+            const SliverAppBar(
+              pinned: true,
+              snap: true,
+              floating: true,
+              expandedHeight: 170,
+              flexibleSpace: FlexibleSpaceBar(
+                title: Text("data"),
+              ),
+            ),
+            Consumer<StudentModelFunction>(
+              builder: (context, value, child) => SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                childCount: value.studentlistNotifier.length,
+                (context, index) => GestureDetector(
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: ((context) => StudentScreen(
+                            index: index,
+                          )))),
+                  child: Container(
+                    child: Row(
+                      children: [
+                        Consumer<ImageController>(
+                          builder: (context, image, child) => Avatar(
+                            model: value.studentlistNotifier[index],
+                            circleRadious: 30,
+                          ),
+                        ),
+                        Column(
+                          children: [
+                            TextWidget(
+                                title: value.studentlistNotifier[index].name),
+                            TextWidget(
+                                title: value.studentlistNotifier[index].age),
+                          ],
+                        ),
+                        IconWidget(
+                          onpressing: () {
+                            Provider.of<StudentModelFunction>(context,
+                                    listen: false)
+                                .deleteStudent(
+                                    value.studentlistNotifier[index].id!);
+                          },
+                          button: Icons.delete,
+                          color: kColorRed,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                title: TextWidget(title: value.studentlistNotifier[index].name),
-                subtitle:
-                    TextWidget(title: value.studentlistNotifier[index].age),
-                trailing: IconWidget(
-                  onpressing: () {
-                    
-                    Provider.of<StudentModelFunction>(context, listen: false)
-                        .deleteStudent(value.studentlistNotifier[index].id!);
-                  },
-                  button: Icons.delete,
-                  color: kColorRed,
-                ),
-              ),
-            );
-          },
+              )),
+            )
+          ],
         ),
-      ),
-      bottomNavigationBar: GestureDetector(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => DetailAddingScreen(
-            type: ActionType.addStudent,
+        bottomNavigationBar: GestureDetector(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => DetailAddingScreen(
+              type: ActionType.addStudent,
+            ),
+          )),
+          child: const BottomBarWidget(
+            title: "Add Student",
           ),
-        )),
-        child: const BottomBarWidget(
-          title: "Add Student",
         ),
-      ),
     );
   }
 }

@@ -15,8 +15,14 @@ class WidgetAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.black,
+    return  CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          pinned: false,
+          snap: false,
+          floating: false,
+          expandedHeight: 160,
+          backgroundColor: Colors.black,
       title: TextWidget(title: title.toUpperCase()),
       centerTitle: true,
       actions: <Widget>[
@@ -25,6 +31,9 @@ class WidgetAppBar extends StatelessWidget {
           button: iconButton,
           color: iconColor,
         )
+      ],
+        )
+
       ],
     );
   }
